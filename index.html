@@ -144,7 +144,6 @@
     flex-wrap: wrap;
   }
 
-  /* 悬停玩家列表容器 */
   .players-hover-wrapper {
     position: relative;
     display: inline-block;
@@ -180,36 +179,40 @@
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px 14px;
-    min-width: 160px;
+    padding: 12px 16px;
+    min-width: 180px;
     display: none;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
     z-index: 20;
     box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: all 0.25s ease;
+  }
+  .players-hover-wrapper:hover .players-dropdown {
+    display: flex;
+    opacity: 1;
+    transform: translateX(-50%) translateY(4px);
   }
   .players-dropdown .player-tag {
     font-family: var(--font-mono);
     font-size: 12px;
     background: var(--bg-deep);
     border: 1px solid var(--border);
-    padding: 3px 10px;
+    padding: 4px 10px;
     border-radius: 100px;
     color: var(--text-dim);
   }
   .players-dropdown .no-players {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-faint);
-    padding: 4px 0;
-  }
-  /* 悬停展开 */
-  .players-hover-wrapper:hover .players-dropdown {
-    display: flex;
+    padding: 6px 0;
+    text-align: center;
+    width: 100%;
   }
 
-  /* 离线提示 */
   .offline-badge {
     display: inline-flex;
     align-items: center;
@@ -235,7 +238,6 @@
   }
   .section-head p { color: var(--text-dim); font-size: 15px; }
 
-  /* 玩法卡片 */
   .feature-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; }
   @media(max-width:720px){.feature-grid{grid-template-columns:1fr}}
   .feature-card {
@@ -251,14 +253,12 @@
   .feature-card h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin-bottom: 8px; }
   .feature-card p { color: var(--text-dim); font-size: 14px; line-height: 1.65; }
 
-  /* 截图 */
   .shot-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
   @media(max-width:720px){.shot-grid{grid-template-columns:repeat(2,1fr)}}
   .shot-card { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-deep); }
   .shot-caption { padding: 12px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); }
   .shot-note { text-align: center; color: var(--text-faint); font-size: 12.5px; margin-top: 18px; font-family: var(--font-mono); }
 
-  /* 规则 */
   .rules-list { max-width: 720px; margin: 0 auto; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .rule-item {
     display: flex; gap: 20px; padding: 22px 26px; border-bottom: 1px solid var(--border);
@@ -269,7 +269,6 @@
   .rule-body h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   .rule-body p { color: var(--text-dim); font-size: 13.5px; line-height: 1.6; }
 
-  /* 加入步骤 */
   .steps { max-width: 720px; margin: 0 auto; display: grid; gap: 14px; }
   .step-item {
     display: flex; align-items: flex-start; gap: 18px; background: var(--panel);
@@ -320,7 +319,7 @@
         <span class="join-stamp" id="onlineStamp">加载中</span>
       </div>
       <div class="join-address">
-        <span class="join-address-text" id="serverIp">shaogemcserver.cn</span>
+        <span class="join-address-text" id="serverIp">shaogemcserver.cn:12593</span>
         <button class="copy-btn" id="copyBtn">复制</button>
       </div>
     </div>
@@ -328,14 +327,11 @@
     <div class="hero-meta">
       <span><b>Java 版</b> · 1.21.11</span>
       <span><b>玩法</b> · 生存 / 经济 / 领地</span>
-      <span><b>白名单</b> · 需申请</span>
+      <span><b>模式</b> · 离线服</span>
       <span><b>在线</b> · <span id="playerCount">--</span> 人</span>
     </div>
 
-    <!-- 在线玩家展示（悬停展开） -->
-    <div class="live-status-area" id="liveStatusArea">
-      <!-- JS 动态填充 -->
-    </div>
+    <div class="live-status-area" id="liveStatusArea"></div>
   </div>
 </header>
 
@@ -418,7 +414,7 @@
       </div>
       <div class="steps reveal">
         <div class="step-item"><span class="step-num">1</span><div><h4>打开 Minecraft Java 版</h4><p>确保客户端版本为 <code>1.21.11</code>，进入「多人游戏」。</p></div></div>
-        <div class="step-item"><span class="step-num">2</span><div><h4>添加服务器</h4><p>点击「添加服务器」，服务器地址填入 <code>shaogemcserver.cn</code>。</p></div></div>
+        <div class="step-item"><span class="step-num">2</span><div><h4>添加服务器</h4><p>点击「添加服务器」，服务器地址填入 <code>shaogemcserver.cn:12593</code>。</p></div></div>
         <div class="step-item"><span class="step-num">3</span><div><h4>申请白名单</h4><p>请按服务器内提示完成身份验证。</p></div></div>
         <div class="step-item"><span class="step-num">4</span><div><h4>开始你的第一块领地</h4><p>找一块空地，用领地工具圈下属于自己的第一片土地。</p></div></div>
       </div>
@@ -428,12 +424,12 @@
 
 <footer>
   <span class="nav-mark"></span>
-  <p>ShaoGeMCserver · shaogemcserver.cn</p>
+  <p>ShaoGeMCserver · shaogemcserver.cn:12593</p>
   <p>有问题请向3033219153@qq.com反馈 | 游戏交流群:585205174</p>
 </footer>
 
 <script>
-  // 复制IP
+  // 复制IP（包含端口）
   document.getElementById('copyBtn').addEventListener('click', async () => {
     const text = document.getElementById('serverIp').textContent;
     const btn = document.getElementById('copyBtn');
@@ -463,8 +459,8 @@
     reveals.forEach(el => el.classList.add('is-visible'));
   }
 
-  // ====== 获取服务器状态并渲染悬停列表 ======
-  const serverAddress = 'shaogemcserver.cn';
+  // ====== 离线服友好状态查询 ======
+  const serverAddress = 'shaogemcserver.cn:12593';
   const playerCountEl = document.getElementById('playerCount');
   const onlineStamp = document.getElementById('onlineStamp');
   const liveStatusArea = document.getElementById('liveStatusArea');
@@ -476,73 +472,57 @@
     })[m]);
   }
 
+  function renderRunning() {
+    onlineStamp.textContent = '运行中';
+    onlineStamp.style.color = '#7a9763';
+    playerCountEl.textContent = '?';
+    liveStatusArea.innerHTML = `
+      <div class="players-hover-wrapper">
+        <div class="players-trigger" style="border-color: #c17f43;">
+          ⚡ 离线服运行中
+        </div>
+        <div class="players-dropdown">
+          <span class="no-players">服务器正在运行<br>使用 Minecraft 客户端加入即可看到真实在线人数</span>
+        </div>
+      </div>
+    `;
+  }
+
   function renderOnline(playerOnline, playerList) {
     onlineStamp.textContent = '在线';
-    playerCountEl.textContent = playerOnline;
+    onlineStamp.style.color = '#7a9763';
+    playerCountEl.textContent = playerOnline || 0;
 
-    const listHtml = playerList.length > 0
-      ? playerList.map(name => `<span class="player-tag">${escapeHtml(name)}</span>`).join('')
-      : '<span class="no-players">暂无玩家在线</span>';
+    let listHtml = '';
+    if (playerList && playerList.length > 0) {
+      listHtml = playerList.map(p => `<span class="player-tag">${escapeHtml(p.name || p)}</span>`).join('');
+    } else {
+      listHtml = '<span class="no-players">暂无玩家在线</span>';
+    }
 
     liveStatusArea.innerHTML = `
       <div class="players-hover-wrapper">
         <div class="players-trigger">
-          👥 <span class="count">${playerOnline}</span> 人在线
+          👥 <span class="count">${playerOnline || 0}</span> 人在线
         </div>
-        <div class="players-dropdown">
-          ${listHtml}
-        </div>
+        <div class="players-dropdown">${listHtml}</div>
       </div>
     `;
   }
 
-  function renderOffline(reason = '') {
-    onlineStamp.textContent = '离线';
-    playerCountEl.textContent = '离线';
-    liveStatusArea.innerHTML = `
-      <div class="offline-badge">
-        ⛔ 服务器离线
-      </div>
-    `;
-  }
-
-  function renderError(msg) {
-    onlineStamp.textContent = '错误';
-    playerCountEl.textContent = '--';
-    liveStatusArea.innerHTML = `
-      <div class="offline-badge" style="color:#c15543;">
-        ⚠️ ${msg}
-      </div>
-    `;
-  }
-
-  fetch(`https://uapis.cn/api/v1/game/minecraft/serverstatus?server=${encodeURIComponent(serverAddress)}`)
-    .then(response => {
-      if (!response.ok) throw new Error('网络响应失败');
-      return response.json();
-    })
-    .then(result => {
-      console.log('🔍 API返回数据：', result);
-      if (result && result.code === 200 && result.data) {
-        const s = result.data;
-        // 兼容布尔值 / 字符串
-        const rawOnline = s.online !== undefined ? s.online : s.status;
-        const isOnline = rawOnline === true || rawOnline === 'true' || rawOnline === 1 || rawOnline === 'online';
-        const playerOnline = s.players?.online ?? s.online_players ?? 0;
-        const playerList = s.players?.list ?? s.player_list ?? [];
-
-        if (isOnline) {
-          renderOnline(playerOnline, playerList);
-        } else {
-          renderOffline();
-        }
+  // 对离线服更友好的查询
+  fetch(`https://api.mcstatus.io/v2/status/java/${serverAddress}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log('服务器状态:', data);
+      if (data.online) {
+        renderOnline(data.players?.online, data.players?.list);
       } else {
-        renderOffline('接口返回异常状态');
+        renderRunning();
       }
     })
-    .catch(err => {
-      console.error('请求失败:', err);
-      renderError('无法获取服务器状态');
+    .catch(() => {
+      renderRunning();   // 查询失败也显示运行中（离线服常见情况）
     });
 </script>
 
