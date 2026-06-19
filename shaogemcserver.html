@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShaoGeMCserver · 生存 · 经济 · 领地</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     设计说明
+     主题取自服务器的核心玩法——领地与地皮交易——视觉语言借用
+     "地契/测绘文书"：深石板绿做底色，铜色做印章强调色，
+     羊皮纸色块仅用于"地契卡片"这一处signature元素，不铺满全页。
+     数据类信息（IP、坐标、条款编号）统一用等宽字体，
+     呼应测绘文书里数字对齐的严谨感。
+     ============================================================ */
+
+  :root {
+    --bg: #1a1f1b;
+    --bg-deep: #141815;
+    --panel: #20261f;
+    --border: #313a2e;
+    --text: #e9e7dc;
+    --text-dim: #9aa395;
+    --text-faint: #5e6859;
+
+    --parchment: #f1e8d3;
+    --parchment-ink: #2b2419;
+    --parchment-dim: #6b5f48;
+
+    --copper: #c17f43;
+    --copper-deep: #9c6431;
+    --moss: #7a9763;
+    --moss-deep: #5d7849;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ---------------- 顶部导航 ---------------- */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(20, 24, 21, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+  }
+  .nav-mark {
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    background: linear-gradient(160deg, var(--moss) 0%, var(--moss) 45%, var(--copper-deep) 45%, var(--copper-deep) 100%);
+    flex-shrink: 0;
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .nav-links a { text-decoration: none; transition: color 0.15s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--copper-deep);
+    color: #1a1208;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  @media (max-width: 680px) {
+    .nav-links { display: none; }
+  }
+
+  /* ---------------- Hero ---------------- */
+  .hero {
+    position: relative;
+    padding: 88px 0 0;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(122,151,99,0.16) 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg) 70%, var(--bg-deep) 100%);
+  }
+  .hero-horizon {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 140px;
+    z-index: 0;
+    opacity: 0.5;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding-bottom: 64px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--moss);
+    background: rgba(122, 151, 99, 0.1);
+    border: 1px solid rgba(122, 151, 99, 0.3);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  .eyebrow .sep { color: var(--text-faint); }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(36px, 6vw, 60px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    max-width: 760px;
+    margin: 0 auto 22px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--copper);
+  }
+  .hero-sub {
+    color: var(--text-dim);
+    font-size: 16.5px;
+    max-width: 520px;
+    margin: 0 auto 40px;
+  }
+
+  /* 加入面板：仿地契印章卡片，整页唯一的羊皮纸色块 */
+  .join-panel {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--parchment);
+    color: var(--parchment-ink);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -20px rgba(0,0,0,0.5);
+    max-width: 520px;
+    width: 100%;
+  }
+  .join-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px dashed rgba(43, 36, 25, 0.25);
+  }
+  .join-label {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    color: var(--parchment-dim);
+    text-transform: uppercase;
+  }
+  .join-stamp {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--copper-deep);
+    border: 1px solid var(--copper-deep);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .join-address {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 22px 22px;
+  }
+  .join-address-text {
+    font-family: var(--font-mono);
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    flex: 1;
+    text-align: left;
+    word-break: break-all;
+  }
+  .copy-btn {
+    flex-shrink: 0;
+    background: var(--parchment-ink);
+    color: var(--parchment);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .copy-btn:hover { opacity: 0.85; }
+  .copy-btn:focus-visible { outline: 2px solid var(--copper-deep); outline-offset: 2px; }
+
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-faint);
+  }
+  .hero-meta span b { color: var(--text-dim); font-weight: 500; }
+
+  /* ---------------- 通用 section ---------------- */
+  section { padding: 96px 0; }
+  .section-head {
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto 56px;
+  }
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    color: var(--moss);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 4vw, 36px);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 14px;
+  }
+  .section-head p { color: var(--text-dim); font-size: 15px; }
+
+  /* ---------------- 玩法卡片（地契卡风格） ---------------- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 720px) { .feature-grid { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 26px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .feature-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--moss-deep);
+  }
+  .feature-coord {
+    position: absolute;
+    top: 16px; right: 18px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.03em;
+  }
+  .feature-icon {
+    width: 38px; height: 38px;
+    margin-bottom: 18px;
+  }
+  .feature-card h3 {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .feature-card p {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  /* ---------------- 截图展示 ---------------- */
+  .shot-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 720px) { .shot-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .shot-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-deep);
+  }
+  .shot-frame {
+    aspect-ratio: 4 / 3;
+    position: relative;
+    overflow: hidden;
+  }
+  .shot-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  /* 四种不同的程序化「地形」配色，作为真实截图上线前的占位 */
+  .shot-frame--1::before { background: linear-gradient(165deg, #3b4a31 0%, #283621 45%, #1d2818 100%); }
+  .shot-frame--2::before { background: linear-gradient(165deg, #4a3c28 0%, #6b5435 45%, #2b2316 100%); }
+  .shot-frame--3::before { background: linear-gradient(165deg, #2d3b42 0%, #1f2a30 45%, #151d22 100%); }
+  .shot-frame--4::before { background: linear-gradient(165deg, #4a3f2c 0%, #5a4530 45%, #241d12 100%); }
+  .shot-frame .pixel-overlay {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, transparent 24%, rgba(0,0,0,0.18) 25%, rgba(0,0,0,0.18) 26%, transparent 27%, transparent 74%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.18) 76%, transparent 77%),
+      linear-gradient(90deg, transparent 24%, rgba(0,0,0,0.18) 25%, rgba(0,0,0,0.18) 26%, transparent 27%, transparent 74%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.18) 76%, transparent 77%);
+    background-size: 50px 50px;
+    opacity: 0.5;
+  }
+  .shot-caption {
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+  }
+  .shot-note {
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12.5px;
+    margin-top: 18px;
+    font-family: var(--font-mono);
+  }
+
+  /* ---------------- 规则（条款式） ---------------- */
+  .rules-list {
+    max-width: 720px;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .rule-item {
+    display: flex;
+    gap: 20px;
+    padding: 22px 26px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .rule-item:last-child { border-bottom: none; }
+  .rule-num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--copper);
+    flex-shrink: 0;
+    padding-top: 2px;
+    min-width: 28px;
+  }
+  .rule-body h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .rule-body p {
+    color: var(--text-dim);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* ---------------- 加入步骤 ---------------- */
+  .steps {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    gap: 14px;
+  }
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--moss);
+    flex-shrink: 0;
+    min-width: 32px;
+  }
+  .step-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .step-item p { color: var(--text-dim); font-size: 13.5px; }
+  .step-item code {
+    font-family: var(--font-mono);
+    background: var(--bg-deep);
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    color: var(--copper);
+  }
+
+  /* ---------------- Footer ---------------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    text-align: center;
+  }
+  footer .nav-mark { margin: 0 auto 14px; }
+  footer p {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  /* ---------------- 滚动浮现动画 ---------------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <span class="nav-mark" aria-hidden="true"></span>
+      ShaoGeMCserver
+    </div>
+    <div class="nav-links">
+      <a href="#features">玩法</a>
+      <a href="#gallery">截图</a>
+      <a href="#rules">规则</a>
+      <a href="#join">加入方式</a>
+    </div>
+    <a href="#join" class="nav-cta">立即加入</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <svg class="hero-horizon" viewBox="0 0 1080 140" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,140 L0,90 L90,90 L90,60 L180,60 L180,90 L320,90 L320,40 L420,40 L420,90 L560,90 L560,70 L680,70 L680,90 L820,90 L820,50 L920,50 L920,90 L1080,90 L1080,140 Z" fill="#0f130d" opacity="0.6"/>
+  </svg>
+
+  <div class="wrap hero-content">
+    <div class="eyebrow">生存 <span class="sep">·</span> 经济 <span class="sep">·</span> 领地</div>
+
+    <h1>这片大陆，<br>每一块土地都<em>有主</em></h1>
+    <p class="hero-sub">
+      ShaoGeMCserver 是一个以生存为根基、以经济为脉络的世界——
+      开荒、建立领地、把多余的产出搬进市场，让你的劳动看得见、卖得出。
+    </p>
+
+    <div class="join-panel">
+      <div class="join-panel-head">
+        <span class="join-label">服务器地址</span>
+        <span class="join-stamp">在线</span>
+      </div>
+      <div class="join-address">
+        <span class="join-address-text" id="serverIp">shaogemcserver.cn</span>
+        <button class="copy-btn" id="copyBtn">复制</button>
+      </div>
+    </div>
+
+    <div class="hero-meta">
+      <span><b>Java 版</b> · 1.21.11</span>
+      <span><b>玩法</b> · 生存 / 经济 / 领地</span>
+      <span><b>白名单</b> · 需申请</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 玩法介绍 -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-tag">玩法体系</div>
+        <h2>不止是生存，<br>更是一套完整的经济秩序</h2>
+        <p>四个相互支撑的系统，构成了这片大陆运转的方式。</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card reveal">
+          <span class="feature-coord">PLOT · 01</span>
+          <svg class="feature-icon" viewBox="0 0 38 38" fill="none">
+            <path d="M19 4 L31 12 V28 L19 34 L7 28 V12 Z" stroke="#7a9763" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M19 12 V34 M7 17 L19 22 L31 17" stroke="#7a9763" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+          <h3>原汁原味生存</h3>
+          <p>保留原版采集、合成、建造的核心节奏，不做魔改，靠自己的双手把空地变成家。</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <span class="feature-coord">PLOT · 02</span>
+          <svg class="feature-icon" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="14" stroke="#c17f43" stroke-width="2"/>
+            <path d="M19 11 V27 M14 15 H23 a3 3 0 0 1 0 6 H15 a3 3 0 0 0 0 6 H24" stroke="#c17f43" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <h3>玩家自由市场</h3>
+          <p>多余的矿石、农产品、附魔书都能在交易行出售。</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <span class="feature-coord">PLOT · 03</span>
+          <svg class="feature-icon" viewBox="0 0 38 38" fill="none">
+            <rect x="6" y="6" width="26" height="26" rx="2" stroke="#7a9763" stroke-width="2"/>
+            <path d="M6 19 H32 M19 6 V32" stroke="#7a9763" stroke-width="1.5" opacity="0.5"/>
+          </svg>
+          <h3>领地保护机制</h3>
+          <p>圈地即受保护，他人无法破坏或盗取你领地内的方块与物品，安心建造不用日夜蹲守。</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <span class="feature-coord">PLOT · 04</span>
+          <svg class="feature-icon" viewBox="0 0 38 38" fill="none">
+            <path d="M8 18 L19 8 L30 18 V31 H8 Z" stroke="#c17f43" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M15 31 V22 H23 V31" stroke="#c17f43" stroke-width="1.6"/>
+          </svg>
+          <h3>地皮买卖交易</h3>
+          <p>地皮可直接购买或转手，想做生意还是收租，地段由你来挑。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 截图展示 -->
+  <section id="gallery">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-tag">实景一览</div>
+        <h2>这片大陆，<br>正在被玩家们一块块建起来</h2>
+        <p>主城、市场、领地建筑群——每一寸都是真实玩家的劳动成果。</p>
+      </div>
+
+      <div class="shot-grid">
+<div class="shot-card reveal">
+  <img src="E:\桌面\服务器宣传网页图片存放\sukuna.png" alt="主世界建筑" style="width:100%; aspect-ratio: 4/3; object-fit: cover; display:block;">
+  <div class="shot-caption">主世界建筑</div>
+</div>
+        <div class="shot-card reveal">
+         <img src="E:\桌面\服务器宣传网页图片存放\shop.png" alt="玩家集市" style="width:100%; aspect-ratio: 4/3; object-fit: cover; display:block;">
+          <div class="shot-caption">玩家集市</div>
+        </div>
+        <div class="shot-card reveal">
+          <img src="E:\桌面\服务器宣传网页图片存放\MAOZHUXI.png" alt="建筑展示" style="width:100%; aspect-ratio: 4/3; object-fit: cover; display:block;">
+          <div class="shot-caption">建筑展示</div>
+        </div>
+        <div class="shot-card reveal">
+          <img src="E:\桌面\服务器宣传网页图片存放\DP.png" alt="地皮展示" style="width:100%; aspect-ratio: 4/3; object-fit: cover; display:block;">
+          <div class="shot-caption">地皮展示</div>
+        </div>
+      </div>
+      <p class="shot-note">/* 占位画面 · 替换为真实服务器截图后效果更佳 */</p>
+    </div>
+  </section>
+
+  <!-- 服务器规则 -->
+  <section id="rules">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-tag">秩序条款</div>
+        <h2>简单的规则，<br>换大家都安心的世界</h2>
+        <p>条款不多，但每一条都是为了让所有人玩得舒服。</p>
+      </div>
+
+      <div class="rules-list reveal">
+        <div class="rule-item">
+          <span class="rule-num">01</span>
+          <div class="rule-body">
+            <h4>禁止使用外挂与作弊手段</h4>
+            <p>包括但不限于自动连点、透视、飞行等任何破坏游戏公平性的工具。</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">02</span>
+          <div class="rule-body">
+            <h4>尊重他人领地</h4>
+            <p>未经允许不得进入、破坏他人已声明保护的领地，纠纷可联系管理员协调。</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">03</span>
+          <div class="rule-body">
+            <h4>交易诚信</h4>
+            <p>市场交易需言行一致，恶意诈骗、坐地起价骗取信任一经核实将清退处理。</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">04</span>
+          <div class="rule-body">
+            <h4>文明交流</h4>
+            <p>公共频道禁止刷屏、人身攻击与拉帮结派的恶意言论，保持讨论氛围友善。</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">05</span>
+          <div class="rule-body">
+            <h4>合理利用资源</h4>
+            <p>不恶意刷怪堵塞服务器、不滥用漏洞，发现问题请第一时间反馈给管理组。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 加入方式 -->
+  <section id="join">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-tag">开始游玩</div>
+        <h2>四步，<br>正式成为这片大陆的一员</h2>
+      </div>
+
+      <div class="steps reveal">
+        <div class="step-item">
+          <span class="step-num">1</span>
+          <div>
+            <h4>打开 Minecraft Java 版</h4>
+            <p>确保客户端版本为 <code>1.21.11</code>，进入「多人游戏」。</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">2</span>
+          <div>
+            <h4>添加服务器</h4>
+            <p>点击「添加服务器」，服务器地址填入 <code>shaogemcserver.cn</code>。</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">3</span>
+          <div>
+            <h4>申请白名单</h4>
+            <p>请按服务器内提示完成身份验证。</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">4</span>
+          <div>
+            <h4>开始你的第一块领地</h4>
+            <p>找一块空地，用领地工具圈下属于自己的第一片土地。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span class="nav-mark" aria-hidden="true" style="display:inline-block;"></span>
+  <p>ShaoGeMCserver · shaogemcserver.cn</p>
+  <p>有问题请向3033219153@qq.com反馈 | 游戏交流群:585205174</p>
+</footer>
+
+<script>
+  // 一键复制服务器地址
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const text = document.getElementById('serverIp').textContent;
+    const btn = document.getElementById('copyBtn');
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (err) {
+      // 部分浏览器/非HTTPS环境下 clipboard API 不可用，给出兜底提示
+      alert('复制失败，请手动选中地址复制：' + text);
+    }
+  });
+
+  // 滚动浮现动画
+  const reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach((el) => observer.observe(el));
+  } else {
+    reveals.forEach((el) => el.classList.add('is-visible'));
+  }
+</script>
+
+</body>
+</html>
